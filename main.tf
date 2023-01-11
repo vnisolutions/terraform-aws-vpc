@@ -2,35 +2,36 @@ module "vpc" {
   source = "terraform-aws-modules/vpc/aws"
 
   name = "${var.env}-${var.project_name}-vpc"
-  cidr = "10.10.0.0/16"
+  cidr = var.cidr_blocks
 
   azs                 = [join("", [var.region, "a"]), join("", [var.region, "c"])]
-  private_subnets     = ["10.10.1.0/24", "10.10.2.0/24"]
-  public_subnets      = ["10.10.10.0/24", "10.10.11.0/24"]
-  database_subnets    = ["10.10.50.0/24", "10.10.51.0/24"]
-  elasticache_subnets    = ["10.10.60.0/24", "10.10.61.0/24"]
+  private_subnets     = var.private_subnets
+  public_subnets      = var.public_subnets
+  database_subnets    = var.create_database_subnets ? var.database_subnets : []
+  elasticache_subnets = var.create_elasticache_subnets ? var.elasticache_subnets : []
 
   enable_nat_gateway     = true
   enable_vpn_gateway     = false
   single_nat_gateway     = true
   one_nat_gateway_per_az = false
+  enable_dns_hostnames   = var.enable_dns_hostnames
 
-    tags = {
-        # Name  = "${var.env}-${var.project_name}"
-        Environment = "${var.env}"
-        Management  = "terraform"
+  tags = {
+    # Name  = "${var.env}-${var.project_name}"
+    Environment = "${var.env}"
+    Management  = "terraform"
   }
 }
 
 resource "aws_vpc_endpoint" "s3gw_endpoint" {
-    vpc_endpoint_type = "Gateway"
-    vpc_id = module.vpc.vpc_id
-    service_name = "com.amazonaws.${var.region}.s3"
-    private_dns_enabled = false
+  vpc_endpoint_type   = "Gateway"
+  vpc_id              = module.vpc.vpc_id
+  service_name        = "com.amazonaws.${var.region}.s3"
+  private_dns_enabled = false
 
-    tags = {
-        Name = "s3_gateway_endpoint"
-    }
+  tags = {
+    Name = "s3_gateway_endpoint"
+  }
 }
 
 resource "aws_vpc_endpoint_route_table_association" "gw_endpoint_route_private_association" {
